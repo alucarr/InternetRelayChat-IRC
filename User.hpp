@@ -7,11 +7,11 @@
 class User {
 private:
     std::string _name;
-    std::string _surname;
     std::string _nickName;
     int _client_fd;
     char *_host;
     int _port;
+    bool _didRegister;
 
 public:
 	User();
@@ -19,8 +19,13 @@ public:
     ~User();
     
     std::string getName() { return _name; }
-    std::string getSurname() { return _surname; }
     std::string getNickName() { return _nickName; }
+    int getPort() {return _port; }
+    int getClientfd() {return _client_fd;}
+    bool didRegister();
+    void registered();
+    void setName(std::string &name);
+    void setNickName(std::string &nickname);
 };
 
 #endif // USER_HPP

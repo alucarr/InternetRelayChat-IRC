@@ -75,6 +75,38 @@ Server::~Server()
 {
 }
 
+void Server::forRegister(std::string &message,int clientSock, User *us)
+{
+    std::string part1,part2,part3;
+    std::string str;
+    size_t first_space = message.find(' ');
+    if (first_space != std::string::npos) {
+        part1 = message.substr(0, first_space);  // İlk boşluğa kadar olan kısım
+
+        size_t second_space = message.find(' ', first_space + 1);
+        if (second_space != std::string::npos) {
+            part2 = message.substr(first_space + 1, second_space - first_space - 1);  // İkinci boşluğa kadar olan kısım
+            part3 = message.substr(second_space + 1);  // Geri kalan kısım
+        }
+    }
+    if (_password != part1)
+    {
+        str = "password is incorrect!!\n";
+        send(clientSock, str.c_str(), str.length(), 0);
+    }
+    else
+    {
+        us->setName(part2);
+        us->setNickName(part3);
+        str =  "Welcome :" + us->getName() +"\n";
+        send(clientSock, str.c_str(), str.length(), 0);
+        us->registered(); // burayı düzenlicez 0 ya da 1 alcak bool çünkü; adı da setRegister olcak;
+    }
+    //std::cout << us.didRegister() << "        " << std::endl;
+    
+}
+
+   
 void Server::start()
 {
     struct pollfd newPollfd;
@@ -101,7 +133,6 @@ void Server::handleEvents()
     pollfd client_fd;
     for (unsigned long i = 0; i < _pollfds.size(); ++i) {
         struct pollfd& pfd = _pollfds[i]; // pfd burada tanımlanıyor
-        std::cout << pfd.fd << "ali" << std::endl;
         if (pfd.revents & POLLIN) {
             if (pfd.fd == _serverSocket) {
                 std::cout << "\033[35m" << "rainbow mustafa" << "\033[0m" << std::endl;
@@ -119,30 +150,29 @@ void Server::handleEvents()
                         throw std::runtime_error("Error while setting client socket non-blocking!");
                     send(clientSock, str.c_str(), str.length(), 0);
                     addUser(clientSock, inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
-                    std::cout << "hbay" << std::endl;
                 }
                     }
             }
             else {
                 char message[1024] = {0};
                 ssize_t bytes_received = recv(client_fd.fd, message, sizeof(message), 0);
+                std::string message_str(message);
                 std::cout << message << std::endl;
-                 // Kullanıcı bilgilerini burada belirleyin, örneğin varsayılan bir kullanıcı ekleyin
-                    // std::string userInput;
-                    // std::cout << "Type -Help- to see commands";
-                    // std::getline(std::cin, userInput);
-                    // for (size_t i = 0; i < _commands->size(); i++) {
-		            //     if (userInput == _commands[i]->getName()) {
-                    //         std::cout << "mustafa g0dden" << std::endl;
-                            //_commands[i]->execute(); her command için execute, sonra yapılabilir
-                // varolan kullanıcı işlemleri
+                for(std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it)
+                {
+                    if((*it)->didRegister() == 0)
+                        forRegister(message_str, client_fd.fd, *it);
+                } 
+                }
             }
-        }
-        
-        // if (pfd.revents & POLLHUP) {
-        //     // Kullanıcı çıkış işlemi
-        // }
-    }
+                
+}
+    //     if (pfd.revents & POLLHUP) {
+    //     std::cout << "Bağlantı kapatıldı!" << std::endl;
+    //     // Burada kaynakları serbest bırakabiliriz
+    //     close(pfd.fd); // Socket'i kapat
+    //     //exit(1);
+    // } 
 void Server::addUser(int client_fd,char *host, int port)
 {
 	User* newUser = new User(client_fd, host, port);

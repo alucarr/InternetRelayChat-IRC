@@ -13,6 +13,7 @@
 #include <vector>
 #include <poll.h>
 #include <stdexcept>
+#include <ctype.h>
 #include "User.hpp"
 #include "Commands.hpp"
 
@@ -32,6 +33,7 @@ public:
     Server(const std::string host, const std::string port, const std::string password);
     ~Server();
 
+    void forRegister(std::string &message,int clientSock, User *us);
     void start();
     void addUser(int client_fd,char *host, int port);
     void handleEvents();
