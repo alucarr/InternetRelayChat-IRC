@@ -14,6 +14,8 @@
 #include <poll.h>
 #include <stdexcept>
 #include <ctype.h>
+#include <cctype>
+#include <string>
 #include "User.hpp"
 #include "Commands.hpp"
 
@@ -37,7 +39,12 @@ public:
     void start();
     void addUser(int client_fd,char *host, int port);
     void handleEvents();
+    void sendError(int clientSock, const std::string &message);
+    bool isUserNameTaken(const std::string &nickname);
+    bool splitMessage(const std::string &message, std::string &part1, std::string &part2, std::string &part3);
 };
+
+bool isOnlyWhitespace(const std::string& str);
 
 
 #endif // SERVER_HPP

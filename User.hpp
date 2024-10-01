@@ -23,7 +23,7 @@ public:
     int getPort() {return _port; }
     int getClientfd() {return _client_fd;}
     bool didRegister();
-    void registered();
+    void setRegister(bool status);
     void setName(std::string &name);
     void setNickName(std::string &nickname);
 };

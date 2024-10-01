@@ -22,7 +22,7 @@ bool User::didRegister()
 	return (_didRegister);
 }
 
-void User::registered() {_didRegister = 1;}
+void User::setRegister(bool status){ _didRegister = status;}
 
 void User::setName(std::string &name)
 {

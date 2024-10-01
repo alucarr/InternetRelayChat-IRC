@@ -20,7 +20,6 @@ int Server::setupSocket()
     int sock_fd;
     int optval = 1;
 
-    // ip bilgilerini set eder
     memset(&hints,0,sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -35,14 +34,14 @@ int Server::setupSocket()
         if (sock_fd < 0) {
             continue;
         }
-                                                        //burada optval kullanmamızın sebebi int* bekliyor olması, işlevi sadece aktif etmek(1);
+
         if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) < 0) {
             close(sock_fd);
       freeaddrinfo(serverInfo);
             throw std::runtime_error("Error while setting socket options!");
         }
 
-        if (bind(sock_fd, cp->ai_addr, cp->ai_addrlen) < 0) { //socketi adres ve port ile ilişkilendiriyor atıyorum localhost:9000 ile soketi bağlıyor 
+        if (bind(sock_fd, cp->ai_addr, cp->ai_addrlen) < 0) {
             close(sock_fd);
             continue;
         }
@@ -68,48 +67,82 @@ Server::Server(const std::string host, const std::string port, const std::string
     _port = port;
     _password = passwd;
     _serverSocket = setupSocket();
-    // hata kontrolü olabilir
 }
 
 Server::~Server()
 {
 }
 
-void Server::forRegister(std::string &message,int clientSock, User *us)
-{
-    std::string part1,part2,part3;
-    std::string str;
+bool isOnlyWhitespace(const std::string& str) {
+    return str.find_first_not_of(" \t\n\v\f\r") == std::string::npos;
+}
+
+
+
+void Server::forRegister(std::string &message, int clientSock, User *us) {
+    std::string part1, part2, part3;
+
+    size_t argCount = std::count(message.begin(), message.end(), ' ') + 1;
+    if (argCount > 3) {
+        sendError(clientSock, "Too many arguments! Please enter exactly 3\nEnter: <Password>, <Name>, <Nickname>\n");
+        return;
+    }
+
+    if (!splitMessage(message, part1, part2, part3)) {
+        sendError(clientSock, "Please fill in entry information!!\nEnter: <Password>, <Name>, <Nickname>\n");
+        return;
+    }
+    
+    if (_password != part1) {
+        sendError(clientSock, "password is incorrect!!\nEnter: <Password>, <Name>, <Nickname>\n");
+        return;
+    }
+
+    if (!part3.empty() && isUserNameTaken(part3)) {
+        sendError(clientSock, "kullanılıyo!!\nEnter: <Password>, <Name>, <Nickname>\n");
+        return;
+    }
+
+    us->setName(part2);
+    us->setNickName(part3);
+    std::string str = "Welcome : " + us->getName() + "\n";
+    send(clientSock, str.c_str(), str.length(), 0);
+    us->setRegister(true);
+    std::cout <<"name:" <<  us->getName() << " nickname " <<  us->getNickName() <<"is Register " << us->didRegister() << std::endl;
+}
+
+
+// Mesajı parçalara ayıran fonksiyon
+bool Server::splitMessage(const std::string &message, std::string &part1, std::string &part2, std::string &part3) {
     size_t first_space = message.find(' ');
     if (first_space != std::string::npos) {
-        part1 = message.substr(0, first_space);  // İlk boşluğa kadar olan kısım
-
+        part1 = message.substr(0, first_space); 
         size_t second_space = message.find(' ', first_space + 1);
         if (second_space != std::string::npos) {
-            part2 = message.substr(first_space + 1, second_space - first_space - 1);  // İkinci boşluğa kadar olan kısım
-            part3 = message.substr(second_space + 1);  // Geri kalan kısım
+            part2 = message.substr(first_space + 1, second_space - first_space - 1);
+            part3 = message.substr(second_space + 1); 
+        } else {
+            part2 = message.substr(first_space + 1);
+            part3.clear();
+        }
+        return !isOnlyWhitespace(part1) && !isOnlyWhitespace(part2) && !isOnlyWhitespace(part3);
+    }
+    return false; // Mesajda boşluk yok
+}
+
+bool Server::isUserNameTaken(const std::string &nickname) {
+    for (std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it) {
+        if ((*it)->getNickName() == nickname) {
+            return true;
         }
     }
-    if (_password != part1)
-    {
-        str = "password is incorrect!!\nEnter: <Password>, <Name>, <Nickname>\n";
-        send(clientSock, str.c_str(), str.length(), 0);
-    }
-    else if(part1.empty() || part2.empty() || part3.empty())
-    {
-        str = "Please fill in entry information!!\nEnter: <Password>, <Name>, <Nickname>\n";
-        send(clientSock, str.c_str(), str.length(), 0);   
-    }
-    else
-    {
-        us->setName(part2);
-        us->setNickName(part3);
-        str =  "Welcome : " + us->getName() +"\n";
-        send(clientSock, str.c_str(), str.length(), 0);
-        us->registered(); // burayı düzenlicez 0 ya da 1 alcak bool çünkü; adı da setRegister olcak;
-    }
-    //std::cout << us.didRegister() << "        " << std::endl;
-    
+    return false;
 }
+
+void Server::sendError(int clientSock, const std::string &message) {
+    send(clientSock, message.c_str(), message.length(), 0);
+}
+
 
    
 void Server::start()
@@ -118,7 +151,7 @@ void Server::start()
     newPollfd.fd = _serverSocket;
     newPollfd.events = POLLIN;
 
-    if(fcntl(_serverSocket, F_SETFL,O_NONBLOCK)== -1) // fdlerin özelliklerini ayarlar
+    if(fcntl(_serverSocket, F_SETFL,O_NONBLOCK)== -1)
         throw std::runtime_error("Error while setting socket non-blocking!");
 
     _pollfds.push_back(newPollfd);
@@ -126,7 +159,7 @@ void Server::start()
 
     while(true)
     {                                                      //timeout eklenebilir
-        int numReady = poll(&_pollfds[0], _pollfds.size(), -1);//poll fd olaylarını izler
+        int numReady = poll(&_pollfds[0], _pollfds.size(), -1);
         if(numReady == -1)
             throw std::runtime_error("Error: while polling!");
         this->handleEvents();
@@ -137,48 +170,46 @@ void Server::handleEvents()
 {
     pollfd client_fd;
     for (unsigned long i = 0; i < _pollfds.size(); ++i) {
-        struct pollfd& pfd = _pollfds[i]; // pfd burada tanımlanıyor
+        struct pollfd& pfd = _pollfds[i];
         if (pfd.revents & POLLIN) {
             if (pfd.fd == _serverSocket) {
-                std::cout << "\033[35m" << "rainbow mustafa" << "\033[0m" << std::endl;
                 sockaddr_in clientAddr;
                 socklen_t addrlen = sizeof(clientAddr);
                 int clientSock = accept(_serverSocket, (sockaddr*)&clientAddr, &addrlen);
                 
                 if (clientSock >= 0) {
-                    std::string str;
-                    str = "Enter: <Password>, <Name>, <Nickname>\n";
-                    client_fd.fd = clientSock;    // Yeni kabul edilen client soketini ekliyoruz
-                    client_fd.events = POLLIN;    // Veri bekle
-                    _pollfds.push_back(client_fd);
-                    if(fcntl(clientSock, F_SETFL,O_NONBLOCK)== -1) // fdlerin özelliklerini ayarlar client için
-                        throw std::runtime_error("Error while setting client socket non-blocking!");
-                    send(clientSock, str.c_str(), str.length(), 0);
+
                     addUser(clientSock, inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
-                    break;
+
+                    client_fd.fd = clientSock;
+                    client_fd.events = POLLIN;
+                    _pollfds.push_back(client_fd);
+
+                    if(fcntl(clientSock, F_SETFL,O_NONBLOCK) == -1)
+                        throw std::runtime_error("Error while setting client socket non-blocking!");
+
+                    std::string str = "Enter: <Password>, <Name>, <Nickname>\n";
+                    send(clientSock, str.c_str(), str.length(), 0);
+                }
+            } else {
+                char message[1024] = {0};
+                ssize_t bytes_received = recv(pfd.fd, message, sizeof(message), 0);
+                
+                if (bytes_received > 0) {
+                    std::string message_str(message);
+
+                    for(std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it) {
+                        if ((*it)->getClientfd() == pfd.fd && !(*it)->didRegister()) {
+                            forRegister(message_str, pfd.fd, *it);
+                            break;
+                        }
+                    }
                 }
             }
         }
-            else {
-                char message[1024] = {0};
-                ssize_t bytes_received = recv(client_fd.fd, message, sizeof(message), 0);
-                std::cout << message << std::endl;
-                std::string message_str(message);
-                for(std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it)
-                {
-                    if((*it)->didRegister() == 0)
-                        forRegister(message_str, client_fd.fd, *it);
-                }
-            }
-                
-        // if (pfd.revents & POLLHUP) {
-        //     std::cout << "Bağlantı kapatıldı!" << std::endl;
-        //     // Burada kaynakları serbest bırakabiliriz
-        //     close(pfd.fd); // Socket'i kapat
-        //     //exit(1);
-        // } 
     }
 }
+
 void Server::addUser(int client_fd,char *host, int port)
 {
 	User* newUser = new User(client_fd, host, port);
