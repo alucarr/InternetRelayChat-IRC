@@ -91,14 +91,19 @@ void Server::forRegister(std::string &message,int clientSock, User *us)
     }
     if (_password != part1)
     {
-        str = "password is incorrect!!\n";
+        str = "password is incorrect!!\nEnter: <Password>, <Name>, <Nickname>\n";
         send(clientSock, str.c_str(), str.length(), 0);
+    }
+    else if(part1.empty() || part2.empty() || part3.empty())
+    {
+        str = "Please fill in entry information!!\nEnter: <Password>, <Name>, <Nickname>\n";
+        send(clientSock, str.c_str(), str.length(), 0);   
     }
     else
     {
         us->setName(part2);
         us->setNickName(part3);
-        str =  "Welcome :" + us->getName() +"\n";
+        str =  "Welcome : " + us->getName() +"\n";
         send(clientSock, str.c_str(), str.length(), 0);
         us->registered(); // burayı düzenlicez 0 ya da 1 alcak bool çünkü; adı da setRegister olcak;
     }
@@ -150,29 +155,30 @@ void Server::handleEvents()
                         throw std::runtime_error("Error while setting client socket non-blocking!");
                     send(clientSock, str.c_str(), str.length(), 0);
                     addUser(clientSock, inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
+                    break;
                 }
-                    }
             }
+        }
             else {
                 char message[1024] = {0};
                 ssize_t bytes_received = recv(client_fd.fd, message, sizeof(message), 0);
-                std::string message_str(message);
                 std::cout << message << std::endl;
+                std::string message_str(message);
                 for(std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it)
                 {
                     if((*it)->didRegister() == 0)
                         forRegister(message_str, client_fd.fd, *it);
-                } 
                 }
             }
                 
+        // if (pfd.revents & POLLHUP) {
+        //     std::cout << "Bağlantı kapatıldı!" << std::endl;
+        //     // Burada kaynakları serbest bırakabiliriz
+        //     close(pfd.fd); // Socket'i kapat
+        //     //exit(1);
+        // } 
+    }
 }
-    //     if (pfd.revents & POLLHUP) {
-    //     std::cout << "Bağlantı kapatıldı!" << std::endl;
-    //     // Burada kaynakları serbest bırakabiliriz
-    //     close(pfd.fd); // Socket'i kapat
-    //     //exit(1);
-    // } 
 void Server::addUser(int client_fd,char *host, int port)
 {
 	User* newUser = new User(client_fd, host, port);
