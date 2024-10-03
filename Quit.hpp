@@ -1,12 +1,12 @@
-#ifndef HELP_HPP
-#define HELP_HPP
+#ifndef QUIT_HPP
+#define QUIT_HPP
 
 #include "Command.hpp"  // Ensure this includes Commands
 
-class Help : public Command // Inherit from Commands
+class Quit : public Command // Inherit from Commands
 {
 public:
-	Help();
+	Quit();
 	void execute(int client_fd);
 	std::string getName() const;
 	std::string description() const;

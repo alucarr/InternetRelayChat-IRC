@@ -144,7 +144,13 @@ void Server::sendError(int clientSock, const std::string &message) {
 }
 
 
-   
+
+std::string trim(const std::string &s) {
+    size_t start = s.find_first_not_of(" \n\r\t\f\v");
+    size_t end = s.find_last_not_of(" \n\r\t\f\v");
+    return (start == std::string::npos || end == std::string::npos) ? "" : s.substr(start, end - start + 1);
+}
+
 void Server::start()
 {
     struct pollfd newPollfd;
@@ -156,6 +162,9 @@ void Server::start()
 
     _pollfds.push_back(newPollfd);
     std::cout<< "Server Started" << std::endl;
+
+    _commands = new Commands;
+    
 
     while(true)
     {                                                      //timeout eklenebilir
@@ -194,17 +203,24 @@ void Server::handleEvents()
             } else {
                 char message[1024] = {0};
                 ssize_t bytes_received = recv(pfd.fd, message, sizeof(message), 0);
-                
                 if (bytes_received > 0) {
                     std::string message_str(message);
-
+                    message_str = trim(message_str);
                     for(std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it) {
                         if ((*it)->getClientfd() == pfd.fd && !(*it)->didRegister()) {
                             forRegister(message_str, pfd.fd, *it);
                             break;
                         }
+                        else
+                        {
+                            if ((*it)->getClientfd() == pfd.fd && (*it)->didRegister())
+                                _commands->commandFinder(message_str, *it);
+                        }
+                        
                     }
                 }
+
+
             }
 
         }

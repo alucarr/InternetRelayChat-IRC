@@ -28,7 +28,8 @@ private:
   int					_serverSocket;
   std::vector<struct pollfd> _pollfds; //giriş çıkış ve fd olaylarını yönetmek için kull. poll fd veri türüdür.
   std::vector<User *> _users;
-    int                 setupSocket();          
+  Commands* _commands;
+  int                 setupSocket();          
 
 public:
     //Server(/* args */);
@@ -44,7 +45,8 @@ public:
     bool splitMessage(const std::string &message, std::string &part1, std::string &part2, std::string &part3);
 };
 
-bool isOnlyWhitespace(const std::string& str);
+std::string trim(const std::string &s); // utilse eklenebilir?
+bool isOnlyWhitespace(const std::string& str); // utils olabilir
 
 
 #endif // SERVER_HPP

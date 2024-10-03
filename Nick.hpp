@@ -1,12 +1,12 @@
-#ifndef HELP_HPP
-#define HELP_HPP
+#ifndef NICK_HPP
+#define NICK_HPP
 
 #include "Command.hpp"  // Ensure this includes Commands
 
-class Help : public Command // Inherit from Commands
+class Nick : public Command // Inherit from Commands
 {
 public:
-	Help();
+	Nick();
 	void execute(int client_fd);
 	std::string getName() const;
 	std::string description() const;

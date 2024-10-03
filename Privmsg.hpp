@@ -1,12 +1,12 @@
-#ifndef HELP_HPP
-#define HELP_HPP
+#ifndef PRIVMSG_HPP
+#define PRIVMSG_HPP
 
 #include "Command.hpp"  // Ensure this includes Commands
 
-class Help : public Command // Inherit from Commands
+class Privmsg : public Command // Inherit from Commands
 {
 public:
-	Help();
+	Privmsg();
 	void execute(int client_fd);
 	std::string getName() const;
 	std::string description() const;
