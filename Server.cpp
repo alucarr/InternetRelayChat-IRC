@@ -171,7 +171,7 @@ void Server::handleEvents()
     pollfd client_fd;
     for (unsigned long i = 0; i < _pollfds.size(); ++i) {
         struct pollfd& pfd = _pollfds[i];
-        if (pfd.revents & POLLIN) {
+        if ((pfd.revents & POLLIN) == POLLIN) {
             if (pfd.fd == _serverSocket) {
                 sockaddr_in clientAddr;
                 socklen_t addrlen = sizeof(clientAddr);
@@ -206,6 +206,11 @@ void Server::handleEvents()
                     }
                 }
             }
+
+        }
+        else if((pfd.revents & POLLHUP) == POLLHUP){
+              // Hem veri gönderme hem de alma kapatılır
+            std::cout << "arabadan atladi" << std::endl;
         }
     }
 }
