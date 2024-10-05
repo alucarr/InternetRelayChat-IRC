@@ -15,5 +15,5 @@ std::string Kick::getName() const
 
 std::string Kick::description() const
 {
-	return RED "Kick 	: Removes a user from a specific channel";
+	return  "KICK: Removes a user from a specific channel";
 }

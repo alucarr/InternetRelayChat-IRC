@@ -2,6 +2,7 @@
 #define COMMAND_HPP
 
 #include <string>
+#include <iostream>
 #include "Utils.hpp"
 class Command {
 public:

@@ -15,5 +15,5 @@ std::string Part::getName() const
 
 std::string Part::description() const
 {
-	return RED "Part 	: Allows the user to leave a channel";
+	return  "PART: Allows the user to leave a channel";
 }

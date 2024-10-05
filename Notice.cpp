@@ -15,5 +15,5 @@ std::string Notice::getName() const
 
 std::string Notice::description() const
 {
-	return RED "Notice  : Sends a notification message to the target (user or channel)";
+	return  "NOTICE: Sends a notification message to the target (user or channel)";
 }

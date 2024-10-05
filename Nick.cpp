@@ -15,5 +15,5 @@ std::string Nick::getName() const
 
 std::string Nick::description() const
 {
-	return  BLUE "Nick 	: Sets or changes the user's nickname.";
+	return   "NICK: Sets or changes the user's nickname.";
 }

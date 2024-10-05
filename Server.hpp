@@ -43,6 +43,7 @@ public:
     void sendError(int clientSock, const std::string &message);
     bool isUserNameTaken(const std::string &nickname);
     bool splitMessage(const std::string &message, std::string &part1, std::string &part2, std::string &part3);
+    void forRegisterFromClient(std::string &message, int clientSock, User *us);
 };
 
 std::string trim(const std::string &s); // utilse eklenebilir?

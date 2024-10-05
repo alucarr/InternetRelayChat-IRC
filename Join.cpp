@@ -16,5 +16,5 @@ std::string Join::getName() const
 
 std::string Join::description() const
 {
-	return RED "Join 	: Used to add users to the channel";
+	return  "JOIN: Used to add users to the channel";
 }

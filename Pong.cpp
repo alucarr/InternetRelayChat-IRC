@@ -15,5 +15,5 @@ std::string Pong::getName() const
 
 std::string Pong::description() const
 {
-	return RED "Pong	: It responds to the ping message from the server";
+	return  "PONG: It responds to the ping message from the server";
 }

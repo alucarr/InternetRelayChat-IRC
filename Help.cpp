@@ -26,5 +26,5 @@ std::string Help::getName() const
 
 std::string Help::description() const
 {
-	return RED "Help 	: Shows descriptions of commands" RESET;
+	return  "HELP: Shows descriptions of commands" ;
 }

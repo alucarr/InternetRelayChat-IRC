@@ -15,5 +15,5 @@ std::string Quit::getName() const
 
 std::string Quit::description() const
 {
-	return BLUE "Quit 	: Allows you to exit the program";
+	return  "QUIT: Allows you to exit the program";
 }

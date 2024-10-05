@@ -15,5 +15,5 @@ std::string Topic::getName() const
 
 std::string Topic::description() const
 {
-	return BLUE "Topic 	: Sets or shows the topic of a channel";
+	return  "Topic: Sets or shows the topic of a channel";
 }

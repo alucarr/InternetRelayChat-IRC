@@ -15,5 +15,5 @@ std::string List::getName() const
 
 std::string List::description() const
 {
-	return BLUE "List 	: Shows the list of channels available on the server";
+	return  "LIST: Shows the list of channels available on the server";
 }

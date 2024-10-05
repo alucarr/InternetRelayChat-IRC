@@ -15,5 +15,5 @@ std::string Names::getName() const
 
 std::string Names::description() const
 {
-	return RED "Names 	: Shows the list of users in a channel";
+	return  "NAMES: Shows the list of users in a channel";
 }
