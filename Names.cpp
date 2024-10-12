@@ -10,7 +10,7 @@ void Names::execute(int client_fd)
 
 std::string Names::getName() const
 {
-	return "names";
+	return "NAMES";
 }
 
 std::string Names::description() const

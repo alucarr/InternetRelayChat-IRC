@@ -10,7 +10,7 @@ void Part::execute(int client_fd)
 
 std::string Part::getName() const
 {
-	return "part";
+	return "PART";
 }
 
 std::string Part::description() const

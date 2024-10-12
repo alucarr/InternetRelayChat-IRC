@@ -10,7 +10,7 @@ void Ping::execute(int client_fd)
 
 std::string Ping::getName() const
 {
-	return "ping";
+	return "PING";
 }
 
 std::string Ping::description() const

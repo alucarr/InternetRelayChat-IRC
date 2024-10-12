@@ -10,7 +10,7 @@ void Privmsg::execute(int client_fd)
 
 std::string Privmsg::getName() const
 {
-	return "privmsg";
+	return "PRIVMSG";
 }
 
 std::string Privmsg::description() const

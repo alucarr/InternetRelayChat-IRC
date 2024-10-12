@@ -10,7 +10,7 @@ void Kick::execute(int client_fd)
 
 std::string Kick::getName() const
 {
-	return "kick";
+	return "KICK";
 }
 
 std::string Kick::description() const

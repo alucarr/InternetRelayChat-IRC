@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "Commands.hpp"
 
 void printSocketInfo(int sock_fd) {
     sockaddr_in addr;
@@ -110,9 +111,9 @@ void Server::forRegisterFromClient(std::string &message, int clientSock, User *u
                 } 
                 if (!us->getName().empty())
                 {
-                    std::string str = ":127.0.0.1 001 " + us->getNickName() + " :Welcome to the Internet Relay Network " +
-                      us->getNickName() + "!" + us->getName() + "@" + "127.0.0.1\r\n";
-                    send(clientSock, str.c_str(), str.length(), 0);
+                    std::string str = ":" + _host + " 001 " + us->getNickName() + " :Welcome to the Internet Relay Network " \
+                                    + us->getNickName() +"!"+ us->getName() + "@" +_host+"\r\n";
+                    sendMessage(clientSock, str);
                     us->setRegister(true);
                     std::cout << "name: " << us->getName() << " nickname: " << us->getNickName() << " is Register: " << us->didRegister() << std::endl;
                 }
@@ -124,7 +125,54 @@ void Server::forRegisterFromClient(std::string &message, int clientSock, User *u
 
 }
 
+void Server::removeUserAndFd(int client_fd)
+{
+    // close(client_fd);
+    // std::cout << _pollfds.size() << std::endl;
+    for (std::vector<pollfd>::iterator poll_it = _pollfds.begin(); poll_it != _pollfds.end(); ++poll_it)
+    {
+        std::cout << "asd12" << std::endl;
+        if (poll_it->fd == client_fd)
+        {
+            std::cout << "girdi" << std::endl;
+            close((*poll_it).fd);
+			_pollfds.erase(poll_it);
+			break ;
 
+        }
+    }
+    std::cout << "çıktı poolagirdi" << std::endl;
+    for(std::vector<User *>::iterator it = _users.begin(); it != _users.end(); ++it)
+    {
+        std::cout << client_fd << (*it)->getClientfd() << _users.size() <<std::endl;
+        if (client_fd == (*it)->getClientfd())
+        {
+            delete (*it);
+            _users.erase(it);
+            break ;
+            std::cout << client_fd << (*it)->getClientfd() << _users.size() <<std::endl;
+        }
+    }
+        std::cout << "asd" << std::endl;
+
+}
+//TODO: kanal oluşturur ve kanalın ismini kanallara kaydeder
+Channel *Server::setChannel(std::vector<string> args)
+{
+    Channel *channel = new Channel(args[1]);
+    _channel.push_back(channel);
+//TODO: SADECE GÖRMEK İÇİN
+    for (std::vector<Channel*>::iterator it = _channel.begin(); it != _channel.end(); ++it)
+    {
+        std::cout << (*it)->getChannelName() << std::endl;
+    }
+    return channel;
+}
+
+std::string Server::getHost()
+{
+	return _host;
+}
 
 void Server::forRegister(std::string &message, int clientSock, User *us) {
     std::string part1, part2, part3;
@@ -156,9 +204,9 @@ void Server::forRegister(std::string &message, int clientSock, User *us) {
 
     us->setName(part2);
     us->setNickName(part3);
-    std::string str = ":127.0.0.1 001 " + us->getNickName() + " :Welcome to the Internet Relay Network " \
-        + us->getNickName() +"!"+ us->getName() + "@" +"127.0.0.1\r\n";
-    send(clientSock, str.c_str(), str.length(), 0);
+    std::string str = ":" + _host + " 001 " + us->getNickName() + " :Welcome to the Internet Relay Network " \
+        + us->getNickName() +"!"+ us->getName() + "@" +_host+"\r\n";
+    sendMessage(clientSock, str);
     
     us->setRegister(true);
     std::cout <<"name:" <<  us->getName() << " nickname " <<  us->getNickName() <<"is Register " << us->didRegister() << std::endl;
@@ -193,10 +241,13 @@ bool Server::isUserNameTaken(const std::string &nickname) {
 }
 
 void Server::sendError(int clientSock, const std::string &message) {
+    std::string fullMessage = "ERROR " + message; 
+    send(clientSock, fullMessage.c_str(), fullMessage.length(), 0);
+
+}
+void Server::sendMessage(int clientSock, const std::string &message) {
     send(clientSock, message.c_str(), message.length(), 0);
 }
-
-
 
 std::string trim(const std::string &s) {
     size_t start = s.find_first_not_of(" \n\r\t\f\v");
@@ -216,7 +267,7 @@ void Server::start()
     _pollfds.push_back(newPollfd);
     std::cout<< "Server Started" << std::endl;
 
-    _commands = new Commands;
+    _commands = new Commands(this);
     
 
     while(true)
@@ -230,8 +281,8 @@ void Server::start()
 
 void Server::handleEvents()
 {
-    pollfd client_fd;
     for (unsigned long i = 0; i < _pollfds.size(); ++i) {
+        std::cout << "\r Poll fd size : "<<_pollfds.size() << std::endl;
         struct pollfd& pfd = _pollfds[i];
         if ((pfd.revents & POLLIN) == POLLIN) {
             if (pfd.fd == _serverSocket) {
@@ -243,17 +294,16 @@ void Server::handleEvents()
 
                     addUser(clientSock, inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
 
+                    pollfd client_fd;
                     client_fd.fd = clientSock;
                     client_fd.events = POLLIN;
                     _pollfds.push_back(client_fd);
 
                     if(fcntl(clientSock, F_SETFL,O_NONBLOCK) == -1)
                         throw std::runtime_error("Error while setting client socket non-blocking!");
-                    std::string str = "Enter: <Password>, <Name>, <Nickname>\n";
-                    send(clientSock, str.c_str(), str.length(), 0);
+                    sendMessage(clientSock,"@ :ServerMessage Enter : <Password>, <Name>, <Nickname>\n");
                 }
             } else {
-                
                 char message[1024] = {0};
                 memset(message, '\0', sizeof(message));
                 ssize_t bytes_received = recv(pfd.fd, message, sizeof(message), 0);
@@ -261,6 +311,7 @@ void Server::handleEvents()
                     std::string message_str(message);
                     message_str = trim(message_str);
                     std::cout << message_str << "else içi std"<< std::endl;
+                    //const_iterator sorun çıkarabilir. ŞERH düşüyorum.
                     for(std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it) {
 
                         if((*it)->getClientfd() == pfd.fd && message_str.find("\r\n") && !(*it)->didRegister())
@@ -277,7 +328,9 @@ void Server::handleEvents()
                             if ((*it)->getClientfd() == pfd.fd && (*it)->didRegister())
                                 _commands->commandFinder(message_str, *it);
                         }
-                        
+                        if (_users.empty())
+                            break;
+                        std::cout << _users.size() << std::endl;
                     }
                 }
                 else if (bytes_received < 0)
@@ -285,12 +338,12 @@ void Server::handleEvents()
             }
 
         }
-        else if((pfd.revents & POLLHUP) == POLLHUP){
-            if (_users.empty())
-            {
-                break;
-            }
+        if((pfd.revents & POLLHUP) == POLLHUP){
+            //TODO: QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/else içi std bunu handle etcez
             std::cout << "arabadan atladi" << std::endl;
+            removeUserAndFd(pfd.fd);
+            if (_users.empty())
+                break;
         }
     }
 }

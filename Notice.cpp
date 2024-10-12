@@ -10,7 +10,7 @@ void Notice::execute(int client_fd)
 
 std::string Notice::getName() const
 {
-	return "notice";
+	return "NOTICE";
 }
 
 std::string Notice::description() const

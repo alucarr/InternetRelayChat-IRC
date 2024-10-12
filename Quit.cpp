@@ -6,11 +6,13 @@ Quit::Quit()
 
 void Quit::execute(int client_fd)
 {
+	// _server->sendMessage(client_fd,":" + _users->getNickName()+"!"+_users->getName()+"@"+ _server->getHost()+"\r\n");
+	_server->removeUserAndFd(client_fd);
 }
 
 std::string Quit::getName() const
 {
-	return "Quit";
+	return "QUIT";
 }
 
 std::string Quit::description() const

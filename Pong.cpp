@@ -10,7 +10,7 @@ void Pong::execute(int client_fd)
 
 std::string Pong::getName() const
 {
-	return "pong";
+	return "PONG";
 }
 
 std::string Pong::description() const

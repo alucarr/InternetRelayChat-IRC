@@ -6,11 +6,12 @@ List::List()
 
 void List::execute(int client_fd)
 {
+
 }
 
 std::string List::getName() const
 {
-	return "list";
+	return "LIST";
 }
 
 std::string List::description() const

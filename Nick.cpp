@@ -10,7 +10,7 @@ void Nick::execute(int client_fd)
 
 std::string Nick::getName() const
 {
-	return "nick";
+	return "NICK";
 }
 
 std::string Nick::description() const
