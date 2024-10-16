@@ -1,5 +1,6 @@
 #include "Server.hpp"
 #include "Commands.hpp"
+#include <algorithm>
 
 void printSocketInfo(int sock_fd) {
     sockaddr_in addr;
@@ -122,7 +123,6 @@ void Server::forRegisterFromClient(std::string &message, int clientSock, User *u
 
         }
     } 
-
 }
 
 void Server::removeUserAndFd(int client_fd)
@@ -154,19 +154,69 @@ void Server::removeUserAndFd(int client_fd)
         }
     }
         std::cout << "asd" << std::endl;
+        std::cout << _users.size() << "usersize:" <<std::endl;
 
 }
-//TODO: kanal oluşturur ve kanalın ismini kanallara kaydeder
-Channel *Server::setChannel(std::vector<string> args)
-{
-    Channel *channel = new Channel(args[1]);
-    _channel.push_back(channel);
-//TODO: SADECE GÖRMEK İÇİN
-    for (std::vector<Channel*>::iterator it = _channel.begin(); it != _channel.end(); ++it)
-    {
-        std::cout << (*it)->getChannelName() << std::endl;
+
+
+void Server::addToChannel(Channel *channel, User *users, std::string &chname, int clfd) {
+
+    std::string message = ":" + users->getNickName() + "!" + users->getName() + "@" + getHost() + " JOIN " + channel->getChannelName() + "\r\n";
+
+    for (std::vector<User*>::iterator it = _users.begin(); it != _users.end(); ++it) {
+        User* user = *it;
+        std::vector<std::string> userChannels = user->getChannelName();
+        
+        if (std::find(userChannels.begin(), userChannels.end(), chname) != userChannels.end()) {
+            sendMessage(user->getClientfd(), message);
+        }
     }
-    return channel;
+
+    for (std::vector<User*>::iterator it = _users.begin(); it != _users.end(); ++it) {
+        User* user = *it;
+        std::vector<std::string> userChannels = user->getChannelName();
+
+        if (std::find(userChannels.begin(), userChannels.end(), chname) != userChannels.end() && user->getClientfd() != clfd) {
+            sendMessage(clfd, ":" + user->getNickName() + "!" + user->getName() + "@" + getHost() + " JOIN " + channel->getChannelName() + "\r\n");
+        } else if (std::find(userChannels.begin(), userChannels.end(), chname) != userChannels.end() && user->getNickName() == channel->getAdminName()) {
+            std::string str = "MODE " + chname + " +o " + channel->getAdminName() + "\r\n";
+            sendMessage(user->getClientfd(), str);
+        }
+    }
+
+    for (std::vector<User*>::iterator it = _users.begin(); it != _users.end(); ++it) {
+        User* user = *it;
+
+        if (user->getNickName() != channel->getAdminName() && clfd == user->getClientfd()) {
+            std::string str = "MODE " + chname + " +o " + channel->getAdminName() + "\r\n";
+            sendMessage(user->getClientfd(), str);
+        }
+    }
+
+    //userın içinde bulunduğu kanalları yazdırma for u
+    for (std::vector<User*>::iterator it = _users.begin(); it != _users.end(); ++it) {
+    User* user = *it;
+    std::vector<std::string> userChannels = user->getChannelName();
+    
+    for (std::vector<std::string>::iterator chanIt = userChannels.begin(); chanIt != userChannels.end(); ++chanIt) {
+        std::cout << "Kullanıcı: " << user->getNickName() << ", Kanal: " << *chanIt << std::endl;
+    }
+}
+
+}
+
+Channel* Server::getChannel(std::string chname)
+{
+    for(std::vector<Channel *>::iterator it = _channel.begin(); it != _channel.end(); ++it)
+    {
+        if(chname == (*it)->getChannelName())
+            return *it;
+    }
+    return NULL;
+}
+void Server::createChannel(Channel *channel)
+{
+    _channel.push_back(channel);
 }
 
 std::string Server::getHost()
@@ -302,48 +352,76 @@ void Server::handleEvents()
                     if(fcntl(clientSock, F_SETFL,O_NONBLOCK) == -1)
                         throw std::runtime_error("Error while setting client socket non-blocking!");
                     sendMessage(clientSock,"@ :ServerMessage Enter : <Password>, <Name>, <Nickname>\n");
+                    break;
                 }
             } else {
-                char message[1024] = {0};
-                memset(message, '\0', sizeof(message));
-                ssize_t bytes_received = recv(pfd.fd, message, sizeof(message), 0);
-                if (bytes_received > 0) {
-                    std::string message_str(message);
-                    message_str = trim(message_str);
-                    std::cout << message_str << "else içi std"<< std::endl;
-                    //const_iterator sorun çıkarabilir. ŞERH düşüyorum.
-                    for(std::vector<User *>::const_iterator it = _users.begin(); it != _users.end(); ++it) {
-
-                        if((*it)->getClientfd() == pfd.fd && message_str.find("\r\n") && !(*it)->didRegister())
+                char buffer[1024] = {0};
+                std::string accumulated_message;
+                bool end_of_message = false;
+                while (!end_of_message) {
+                    std::cout << "patlak" << std::endl;
+                    ssize_t bytes_received = recv(pfd.fd, buffer, sizeof(buffer) - 1, 1000);
+                    if (bytes_received == 0) {
+                        std::cout << "Connection closed by client on fd: " << pfd.fd << std::endl;
+                        removeUserAndFd(pfd.fd);
+                        break;
+                    }
+                    std::cout<<"--buffer-" <<buffer<< "--buffer- "<<std::endl;
+                    for (ssize_t i = 0; i < bytes_received; i++) {
+                        if (buffer[i] == '\n') {
+                            accumulated_message += buffer[i];
+                            end_of_message = true;
+                            if(buffer[i-1] == '\r')
+                                continue;
+                            else
+                                break;
+                        } else {
+                            accumulated_message += buffer[i];
+                        }
+                    }
+                }
+                std::cout <<"---123"<< accumulated_message << "---123"<<std::endl;
+                // Mesajı işleme
+                if (end_of_message) {
+                    if (!accumulated_message.empty()) {
+                        accumulated_message = trim(accumulated_message);
+                        std::cout << accumulated_message << " else içi std" << std::endl;
+                       for(std::vector<User *>::iterator it = _users.begin(); it != _users.end(); ++it) {
+                        std::cout << "else içi for" << std::endl;
+                        std::cout << accumulated_message << pfd.fd  <<std::endl;
+                        if((*it)->getClientfd() == pfd.fd && accumulated_message.find("\r\n") && !(*it)->didRegister())
                         {
-                            forRegisterFromClient(message_str,pfd.fd,*it);
-
+                            std::cout << "else içi for1" << std::endl;
+                            forRegisterFromClient(accumulated_message,pfd.fd,*it);
                         }
                         if ((*it)->getClientfd() == pfd.fd && !(*it)->didRegister()) {
-                            forRegister(message_str, pfd.fd, *it);
+                            forRegister(accumulated_message, pfd.fd, *it);
+                            std::cout << "else içi for2" << std::endl;
                             break;
                         }
                         else
                         {
                             if ((*it)->getClientfd() == pfd.fd && (*it)->didRegister())
-                                _commands->commandFinder(message_str, *it);
+                            {
+                                _commands->commandFinder(accumulated_message, *it);
+                                break;
+                            }
+                            std::cout << "else içi for3" << std::endl;
                         }
                         if (_users.empty())
                             break;
-                        std::cout << _users.size() << std::endl;
+                        std::cout << _users.size() << "patlamadan önce "<<std::endl;
+                    }
                     }
                 }
-                else if (bytes_received < 0)
-			        break ;
             }
 
         }
         if((pfd.revents & POLLHUP) == POLLHUP){
-            //TODO: QUIT :KVIrc 5.0.0 Aria http://www.kvirc.net/else içi std bunu handle etcez
+            if (_pollfds.size() < 2) //TODO: BİLİYOZ.
+                break;
             std::cout << "arabadan atladi" << std::endl;
             removeUserAndFd(pfd.fd);
-            if (_users.empty())
-                break;
         }
     }
 }
@@ -353,4 +431,17 @@ void Server::addUser(int client_fd,char *host, int port)
 	User* newUser = new User(client_fd, host, port);
 	_users.push_back(newUser);
 	std::cout << "User added: " << "host:" << host <<  "\tport:" << port <<std::endl;
+}
+
+std::vector<User *> Server::getUsers()
+{
+	if (_users.empty()) {
+        std::cerr << "No users in the vector." << std::endl;
+    }
+	return _users;
+}
+
+std::vector<Channel *> Server::getChannel()
+{
+	return _channel;
 }

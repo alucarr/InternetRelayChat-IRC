@@ -33,3 +33,7 @@ void User::setNickName(std::string &nickname)
 {
 	_nickName = nickname;
 }
+void User::setChannelName(std::string &ch)
+{
+	_channelName.push_back(ch);
+}
