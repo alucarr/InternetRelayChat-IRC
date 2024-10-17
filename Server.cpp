@@ -360,7 +360,7 @@ void Server::handleEvents()
                 bool end_of_message = false;
                 while (!end_of_message) {
                     std::cout << "patlak" << std::endl;
-                    ssize_t bytes_received = recv(pfd.fd, buffer, sizeof(buffer) - 1, 1000);
+                    ssize_t bytes_received = recv(pfd.fd, buffer, sizeof(buffer) - 1, 0);
                     if (bytes_received == 0) {
                         std::cout << "Connection closed by client on fd: " << pfd.fd << std::endl;
                         removeUserAndFd(pfd.fd);
@@ -403,7 +403,7 @@ void Server::handleEvents()
                         {
                             if ((*it)->getClientfd() == pfd.fd && (*it)->didRegister())
                             {
-                                _commands->commandFinder(accumulated_message, *it);
+                                 _commands->commandFinder(accumulated_message, *it);
                                 break;
                             }
                             std::cout << "else içi for3" << std::endl;

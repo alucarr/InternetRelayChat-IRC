@@ -47,7 +47,8 @@ Command* Commands::commandFinder(const std::string &cmdName, User *it)
 	std::vector<std::string> args = setArgs(cmdName);
 	for(size_t i = 0; i < _commands.size(); i++)
 	{
-		if(_commands[i]->getName() == args[0])
+		std::cout << "burada mı" << std::endl;
+		if(cmdName != "" && _commands[i]->getName() == args[0])
 		{
 
 			_commands[i]->setServer(_server);
@@ -64,7 +65,7 @@ Command* Commands::commandFinder(const std::string &cmdName, User *it)
 			_commands[i]->execute((*it).getClientfd());
 			break;
 		}
-		if(i == _commands.size() -1&& cmdName != "")
+		if(cmdName != "" && i == _commands.size() -1)
 			_server->sendError((*it).getClientfd(),"Command not found\n");
 	}
 
