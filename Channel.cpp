@@ -30,7 +30,11 @@ void Channel::setAdminName(string admin)
 }
 
 
-// std::vector<User *> Channel::getUsers()
-// {
-// 	return _usersInChannel;
-// }
+void Channel::removeUser(User* user) {
+    for (std::vector<User*>::iterator it = _usersInChannel.begin(); it != _usersInChannel.end(); ++it) {
+        if (*it == user) {
+            _usersInChannel.erase(it);
+            break;
+        }
+    }
+}

@@ -14,5 +14,8 @@ void Command::setUser(User *users)
 
 void Command::setUserArgs(std::vector<std::string> args)
 {
+	if (!_args.empty())
+		_args.clear();
+
 	_args = args;
 }

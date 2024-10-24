@@ -127,34 +127,26 @@ void Server::forRegisterFromClient(std::string &message, int clientSock, User *u
 
 void Server::removeUserAndFd(int client_fd)
 {
-    // close(client_fd);
-    // std::cout << _pollfds.size() << std::endl;
     for (std::vector<pollfd>::iterator poll_it = _pollfds.begin(); poll_it != _pollfds.end(); ++poll_it)
     {
-        std::cout << "asd12" << std::endl;
         if (poll_it->fd == client_fd)
         {
-            std::cout << "girdi" << std::endl;
             close((*poll_it).fd);
 			_pollfds.erase(poll_it);
 			break ;
 
         }
     }
-    std::cout << "çıktı poolagirdi" << std::endl;
     for(std::vector<User *>::iterator it = _users.begin(); it != _users.end(); ++it)
     {
-        std::cout << client_fd << (*it)->getClientfd() << _users.size() <<std::endl;
+
         if (client_fd == (*it)->getClientfd())
         {
             delete (*it);
             _users.erase(it);
             break ;
-            std::cout << client_fd << (*it)->getClientfd() << _users.size() <<std::endl;
         }
     }
-        std::cout << "asd" << std::endl;
-        std::cout << _users.size() << "usersize:" <<std::endl;
 
 }
 
@@ -293,7 +285,6 @@ bool Server::isUserNameTaken(const std::string &nickname) {
 void Server::sendError(int clientSock, const std::string &message) {
     std::string fullMessage = "ERROR " + message; 
     send(clientSock, fullMessage.c_str(), fullMessage.length(), 0);
-
 }
 void Server::sendMessage(int clientSock, const std::string &message) {
     send(clientSock, message.c_str(), message.length(), 0);
@@ -334,6 +325,17 @@ void Server::handleEvents()
     for (unsigned long i = 0; i < _pollfds.size(); ++i) {
         std::cout << "\r Poll fd size : "<<_pollfds.size() << std::endl;
         struct pollfd& pfd = _pollfds[i];
+        if((pfd.revents & POLLHUP) == POLLHUP){
+            if (_users.empty())
+			{
+				break;
+			}
+            // if (_pollfds.size() < 2) //TODO: BİLİYOZ.
+            //     break;
+            std::cout << "arabadan atladi" << std::endl;
+            removeUserAndFd(pfd.fd);
+            break;
+        }
         if ((pfd.revents & POLLIN) == POLLIN) {
             if (pfd.fd == _serverSocket) {
                 sockaddr_in clientAddr;
@@ -359,14 +361,12 @@ void Server::handleEvents()
                 std::string accumulated_message;
                 bool end_of_message = false;
                 while (!end_of_message) {
-                    std::cout << "patlak" << std::endl;
                     ssize_t bytes_received = recv(pfd.fd, buffer, sizeof(buffer) - 1, 0);
                     if (bytes_received == 0) {
                         std::cout << "Connection closed by client on fd: " << pfd.fd << std::endl;
                         removeUserAndFd(pfd.fd);
                         break;
                     }
-                    std::cout<<"--buffer-" <<buffer<< "--buffer- "<<std::endl;
                     for (ssize_t i = 0; i < bytes_received; i++) {
                         if (buffer[i] == '\n') {
                             accumulated_message += buffer[i];
@@ -385,18 +385,15 @@ void Server::handleEvents()
                 if (end_of_message) {
                     if (!accumulated_message.empty()) {
                         accumulated_message = trim(accumulated_message);
-                        std::cout << accumulated_message << " else içi std" << std::endl;
+                        if(accumulated_message.empty())
+                            break;
                        for(std::vector<User *>::iterator it = _users.begin(); it != _users.end(); ++it) {
-                        std::cout << "else içi for" << std::endl;
-                        std::cout << accumulated_message << pfd.fd  <<std::endl;
                         if((*it)->getClientfd() == pfd.fd && accumulated_message.find("\r\n") && !(*it)->didRegister())
                         {
-                            std::cout << "else içi for1" << std::endl;
                             forRegisterFromClient(accumulated_message,pfd.fd,*it);
                         }
                         if ((*it)->getClientfd() == pfd.fd && !(*it)->didRegister()) {
                             forRegister(accumulated_message, pfd.fd, *it);
-                            std::cout << "else içi for2" << std::endl;
                             break;
                         }
                         else
@@ -406,22 +403,14 @@ void Server::handleEvents()
                                  _commands->commandFinder(accumulated_message, *it);
                                 break;
                             }
-                            std::cout << "else içi for3" << std::endl;
                         }
                         if (_users.empty())
                             break;
-                        std::cout << _users.size() << "patlamadan önce "<<std::endl;
                     }
                     }
                 }
             }
 
-        }
-        if((pfd.revents & POLLHUP) == POLLHUP){
-            if (_pollfds.size() < 2) //TODO: BİLİYOZ.
-                break;
-            std::cout << "arabadan atladi" << std::endl;
-            removeUserAndFd(pfd.fd);
         }
     }
 }
@@ -444,4 +433,15 @@ std::vector<User *> Server::getUsers()
 std::vector<Channel *> Server::getChannel()
 {
 	return _channel;
+}
+
+User *Server::findUserByNick(const std::string &nickName)
+{
+    for (std::vector<User*>::iterator it = _users.begin(); it != _users.end(); ++it) {
+        User* user = *it;
+        if ((*it)->getNickName() == nickName) {
+            return (*it);
+        }
+    }
+    return nullptr;
 }

@@ -26,7 +26,7 @@ public:
 	void setUsers(User *user);
 	void setAdminName(string admin);
 	string getAdminName(){return _adminName;}
-	// std::vector<User *> getUsers();
+	void removeUser(User* user);
 };
 
 #endif // CHANNEL_HPP

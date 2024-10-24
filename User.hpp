@@ -28,6 +28,7 @@ public:
     void setNickName(std::string &nickname);
     void setChannelName(std::string & ch);
     std::vector<std::string> getChannelName(){return _channelName;}
+	void removeUser(const std::string& channelName);
 };
 
 #endif // USER_HPP

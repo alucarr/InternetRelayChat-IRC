@@ -1,6 +1,6 @@
 NAME = ircserver
 CC = c++
-CFLAGS = -std=c++98
+CFLAGS = -std=c++98 -fsanitize=address -g
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 

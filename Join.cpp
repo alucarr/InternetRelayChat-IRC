@@ -6,22 +6,29 @@ Join::Join()
 
 void Join::execute(int client_fd)
 {
-	for (size_t i = 0; i < _args.size(); i++)
+	if(_args.size() != 2)
 	{
-		if(i>2)
+		_server->sendError(client_fd,"Usage: /join #Channel name.\n");
+		return;
+	}
+	std::vector<std::string> userChannels = _users->getChannelName();
+	for (std::vector<std::string>::iterator it = userChannels.begin(); it != userChannels.end(); ++it)
+	{
+		if(*it == _args[1])
 		{
-			_server->sendError(client_fd,"Too many parameters for join. Please enter '/join' 'channel name' 'password' .\n");
+			_server->sendError(client_fd,"You're already joined the channel.\n");
 			return;
 		}
 	}
-	// if (_args[1][0] == '#')
-	// 	_args[1] = _args[1].substr(1);
-	
-	
+	if (_args[1][0] != '#')
+	{
+		_server->sendError(client_fd,"Usage: /join #Channel name.\n");
+		return;
+	}
 	Channel *channel = _server->getChannel(_args[1]);
+
     if(!channel)
     {
-		std::cout << "SŞUGDFPISUDFGUISDFPIUGSDGIPUFVSGIUPDFIGPUSIUFGSDIPGYFGIPYSDFIGPUYSDIFGUSOGUPIDFPIGUSDFIPGUASIDGPUFAISGUYFIPGUYDS"<< std::endl;
         channel = new Channel(_args[1]);
         _server->createChannel(channel);
 		channel->setAdminName(_users->getNickName());

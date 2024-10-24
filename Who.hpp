@@ -1,13 +1,12 @@
-#ifndef QUIT_HPP
-#define QUIT_HPP
+#ifndef WHO_HPP
+#define WHO_HPP
 
 #include "Command.hpp"  // Ensure this includes Commands
-#include "Commands.hpp"
 
-class Quit : public Command // Inherit from Commands
+class Who : public Command // Inherit from Commands
 {
 public:
-	Quit();
+	Who();
 	void execute(int client_fd);
 	std::string getName() const;
 	std::string description() const;
